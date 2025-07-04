@@ -1,2 +1,3 @@
 **/*.*
+!README.md
 !addons/mixamo_root_motion_remover/*.*
