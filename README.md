@@ -8,7 +8,6 @@ An addon for Godot 4.4+ that automatically removes root motion from Mixamo locom
 - **Automatic detection**: Automatically identifies locomotion animations by searching for keywords "forward", "left", "right", "backward" in animation names
 - **Selective removal**: Only modifies locomotion animations, leaving other animations intact
 - **Y-axis preservation**: Maintains vertical movements (jumps, landings) by zeroing only X and Z positions
-- **Multiple selection support**: Can process multiple AnimationLibrary files simultaneously
 
 ## Installation
 
