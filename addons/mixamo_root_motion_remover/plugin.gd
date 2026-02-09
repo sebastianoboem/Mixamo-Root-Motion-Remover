@@ -27,11 +27,14 @@ func FindFilesystemPopup():
 	popupFilesystem.connect("about_to_popup", Callable(self, "AddItemToPopup"))
 	popupFilesystem.connect("id_pressed", Callable(self, "RemoveMixamoRootMotion"))
 
+func _is_valid_resource_path(path: String) -> bool:
+	return path.ends_with(".res") or path.ends_with(".tres")
+
 func AddItemToPopup():
 	if popupFilesystem == null:
 		return
-	var selected_paths = get_selected_paths_from_dock(self)
-	var res_files = selected_paths.filter(func(path): return path.ends_with(".res") and _is_animation_library(path))
+	var selected_paths = get_selected_paths(get_filesystem_tree(self))
+	var res_files = selected_paths.filter(func(path): return _is_valid_resource_path(path) and _is_animation_library(path))
 	
 	if res_files.size() > 0:
 		popupFilesystem.add_separator()
@@ -45,8 +48,8 @@ func _is_animation_library(path: String) -> bool:
 
 func RemoveMixamoRootMotion(id : int):
 	if id == remove_root_motion_menu_id:
-		var selected_paths = get_selected_paths_from_dock(self)
-		var res_files = selected_paths.filter(func(path): return path.ends_with(".res") and _is_animation_library(path))
+		var selected_paths = get_selected_paths(get_filesystem_tree(self))
+		var res_files = selected_paths.filter(func(path): return _is_valid_resource_path(path) and _is_animation_library(path))
 		if res_files.size() > 0:
 			_show_animation_selection_dialog(res_files)
 
