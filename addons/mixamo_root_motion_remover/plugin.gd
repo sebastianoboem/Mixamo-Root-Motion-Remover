@@ -17,19 +17,22 @@ func _exit_tree():
 
 func FindFilesystemPopup():
 	var file_system:FileSystemDock = get_editor_interface().get_file_system_dock()
+	if file_system == null:
+		return
 	
-	for child in file_system.get_children():
-		var pop:PopupMenu = child as PopupMenu
-		if not pop: continue
-		
-		popupFilesystem = pop
-		popupFilesystem.connect("about_to_popup", Callable(self, "AddItemToPopup"))
-		popupFilesystem.connect("id_pressed", Callable(self, "RemoveMixamoRootMotion"))
+	popupFilesystem = _find_first_popup_menu(file_system)
+	if popupFilesystem == null:
+		return
+	
+	popupFilesystem.connect("about_to_popup", Callable(self, "AddItemToPopup"))
+	popupFilesystem.connect("id_pressed", Callable(self, "RemoveMixamoRootMotion"))
 
 func _is_valid_resource_path(path: String) -> bool:
 	return path.ends_with(".res") or path.ends_with(".tres")
 
 func AddItemToPopup():
+	if popupFilesystem == null:
+		return
 	var selected_paths = get_selected_paths(get_filesystem_tree(self))
 	var res_files = selected_paths.filter(func(path): return _is_valid_resource_path(path) and _is_animation_library(path))
 	
@@ -300,6 +303,8 @@ class AnimationSelectionDialog extends ConfirmationDialog:
 
 # Helper functions
 static func get_selected_paths(fs_tree:Tree)->Array:
+	if fs_tree == null:
+		return []
 	var sel_items: = tree_get_selected_items(fs_tree)
 	var result: = []
 	for i in sel_items:
@@ -307,13 +312,31 @@ static func get_selected_paths(fs_tree:Tree)->Array:
 		result.push_back(i.get_metadata(0))
 	return result
 
+static func get_selected_paths_from_dock(plugin:EditorPlugin)->Array:
+	var dock = plugin.get_editor_interface().get_file_system_dock()
+	if dock == null:
+		return []
+	if dock.has_method("get_selected_paths"):
+		return dock.call("get_selected_paths")
+	return get_selected_paths(get_filesystem_tree(plugin))
+
 static func get_filesystem_tree(plugin:EditorPlugin)->Tree:
 	var dock = plugin.get_editor_interface().get_file_system_dock()
+	if dock == null:
+		return null
+	var tree = _find_first_tree(dock)
+	if tree != null:
+		return tree
 	return find_node_by_class_path(dock, ['SplitContainer','Tree']) as Tree
 
 static func tree_get_selected_items(tree:Tree)->Array:
 	var res = []
-	var item = tree.get_next_selected(tree.get_root())
+	if tree == null:
+		return res
+	var root = tree.get_root()
+	if root == null:
+		return res
+	var item = tree.get_next_selected(root)
 	while true:
 		if item == null: break
 		res.push_back(item)
@@ -352,3 +375,21 @@ static func find_node_by_class_path(node:Node, class_path:Array)->Node:
 				depths.push_back(d+1)
 
 	return res 
+
+static func _find_first_popup_menu(node:Node)->PopupMenu:
+	if node is PopupMenu:
+		return node as PopupMenu
+	for child in node.get_children():
+		var found = _find_first_popup_menu(child)
+		if found != null:
+			return found
+	return null
+
+static func _find_first_tree(node:Node)->Tree:
+	if node is Tree:
+		return node as Tree
+	for child in node.get_children():
+		var found = _find_first_tree(child)
+		if found != null:
+			return found
+	return null
