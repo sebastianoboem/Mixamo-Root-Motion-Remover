@@ -12,8 +12,10 @@ func _enter_tree():
 
 func _exit_tree():
 	if popupFilesystem:
-		popupFilesystem.disconnect("about_to_popup", Callable(self, "AddItemToPopup"))
-		popupFilesystem.disconnect("id_pressed", Callable(self, "RemoveMixamoRootMotion"))
+		if popupFilesystem.is_connected("about_to_popup", Callable(self, "AddItemToPopup")):
+			popupFilesystem.disconnect("about_to_popup", Callable(self, "AddItemToPopup"))
+		if popupFilesystem.is_connected("id_pressed", Callable(self, "RemoveMixamoRootMotion")):
+			popupFilesystem.disconnect("id_pressed", Callable(self, "RemoveMixamoRootMotion"))
 
 func FindFilesystemPopup():
 	var file_system:FileSystemDock = get_editor_interface().get_file_system_dock()
@@ -37,8 +39,16 @@ func AddItemToPopup():
 	var res_files = selected_paths.filter(func(path): return _is_valid_resource_path(path) and _is_animation_library(path))
 	
 	if res_files.size() > 0:
-		popupFilesystem.add_separator()
-		popupFilesystem.add_item("Remove Mixamo Root Motion", remove_root_motion_menu_id)
+		# Check if menu item already exists to avoid duplicates on repeated clicks
+		var item_exists = false
+		for i in range(popupFilesystem.item_count):
+			if popupFilesystem.get_item_id(i) == remove_root_motion_menu_id:
+				item_exists = true
+				break
+		
+		if not item_exists:
+			popupFilesystem.add_separator()
+			popupFilesystem.add_item("Remove Mixamo Root Motion", remove_root_motion_menu_id)
 
 func _is_animation_library(path: String) -> bool:
 	var resource = load(path)
@@ -355,11 +365,13 @@ static func find_node_by_class_path(node:Node, class_path:Array)->Node:
 			stack.push_back(c)
 			depths.push_back(0)
 
-	if stack == null: return res
+	# Fixed : Arrays are never null, use is_empty()
+	if stack.is_empty(): return res
 	
 	var max_ = class_path.size()-1
 
-	while stack:
+	# Fixed : use not stack.is_empty()
+	while not stack.is_empty():
 		var d = depths.pop_back()
 		var n = stack.pop_back()
 
@@ -377,6 +389,8 @@ static func find_node_by_class_path(node:Node, class_path:Array)->Node:
 	return res 
 
 static func _find_first_popup_menu(node:Node)->PopupMenu:
+	if node == null:
+		return null
 	if node is PopupMenu:
 		return node as PopupMenu
 	for child in node.get_children():
@@ -386,6 +400,8 @@ static func _find_first_popup_menu(node:Node)->PopupMenu:
 	return null
 
 static func _find_first_tree(node:Node)->Tree:
+	if node == null:
+		return null
 	if node is Tree:
 		return node as Tree
 	for child in node.get_children():
